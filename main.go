@@ -33,17 +33,18 @@ func main() {
 	conn, err := conn("localhost:3301")
 	check(err)
 
-	dataChan := make(chan []int, 100000)
-	for i := 0; i <= 10; i ++ {
-		push(conn, dataChan)
-	}
+	// dataChan := make(chan []int, 100000)
+	// for i := 0; i <= 1000; i ++ {
+	// 	push(conn, dataChan)
+	// }
 
 	timer()
 
 	var i int
 	for {
 		i++
-		dataChan <- []int{i, i, i, i, i}
+		// dataChan <- []int{i, i, i, i, i}
+		pushAsync(conn, []int{i, i, i, i, i, i})
 	}
 }
 
@@ -59,6 +60,11 @@ func push(conn *tarantool.Connection, data chan []int) {
 			atomic.AddInt64(&counter, 1)
 		}
 	}()
+}
+
+func pushAsync(conn *tarantool.Connection, data []int) {
+	conn.InsertAsync("test", data)
+	counter++
 }
 
 func timer() {
