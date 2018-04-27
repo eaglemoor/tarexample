@@ -8,8 +8,14 @@ import (
 	"sync/atomic"
 )
 
+type respTupl struct {
+	i int
+	fut *tarantool.Future
+}
+
 var I int64
 var counter int64
+var resp chan respTupl
 
 func conn(address string) (*tarantool.Connection, error) {
 	opts := tarantool.Opts{
@@ -33,38 +39,36 @@ func main() {
 	conn, err := conn("localhost:3301")
 	check(err)
 
-	// dataChan := make(chan []int, 100000)
-	// for i := 0; i <= 1000; i ++ {
-	// 	push(conn, dataChan)
-	// }
-
 	timer()
+
+	resp = make(chan respTupl, 1000000)
+
+	go readAsync()
 
 	var i int
 	for {
 		i++
-		// dataChan <- []int{i, i, i, i, i}
-		pushAsync(conn, []int{i, i, i, i, i, i})
+		pushAsync(conn, i, []int{i, i, i, i, i, i})
 	}
 }
 
-func push(conn *tarantool.Connection, data chan []int) {
-	go func() {
-		for {
-			row := <- data
-
-			fut := conn.InsertAsync("test", row)
-			_, err := fut.Get()
-			check(err)
-
-			atomic.AddInt64(&counter, 1)
-		}
-	}()
+func pushAsync(conn *tarantool.Connection, i int, data []int) {
+	tup := conn.InsertAsync("test", data)
+	resp <- respTupl{
+		i: i,
+		fut: tup,
+	}
 }
 
-func pushAsync(conn *tarantool.Connection, data []int) {
-	conn.InsertAsync("test", data)
-	counter++
+func readAsync() {
+	for r := range resp {
+		_, err  := r.fut.Get()
+		if err != nil {
+			log.Printf("[ERR] %s", err)
+			continue
+		}
+		counter++
+	}
 }
 
 func timer() {
