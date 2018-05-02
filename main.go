@@ -5,26 +5,30 @@ import (
 
 	"github.com/tarantool/go-tarantool"
 	"log"
+	"math/rand"
+	"os"
 	"sync/atomic"
 )
 
 type respTupl struct {
-	i int
+	i   int
 	fut *tarantool.Future
 }
 
 var I int64
-var counter int64
+var counterSend, counterGet int64
 var resp chan respTupl
 
 func conn(address string) (*tarantool.Connection, error) {
 	opts := tarantool.Opts{
-		User: "guest",
+		User:          "guest",
 		Timeout:       500 * time.Millisecond,
 		Reconnect:     1 * time.Second,
 		MaxReconnects: 3,
+		RateLimit:     300,
+		RLimitAction:  tarantool.RLimitWait,
 	}
-	conn, err := tarantool.Connect(address,  opts)
+	conn, err := tarantool.Connect(address, opts)
 
 	return conn, err
 }
@@ -45,43 +49,54 @@ func main() {
 
 	go readAsync()
 
+	rand.Seed(time.Now().Unix())
+
 	var i int
 	for {
 		i++
-		pushAsync(conn, i, []int{i, i, i, i, i, i})
+		pushAsync(conn, i, []int{rand.Int(), i, i, i, i, i})
 	}
 }
 
 func pushAsync(conn *tarantool.Connection, i int, data []int) {
 	tup := conn.InsertAsync("test", data)
+	atomic.AddInt64(&counterSend, 1)
 	resp <- respTupl{
-		i: i,
+		i:   i,
 		fut: tup,
 	}
 }
 
 func readAsync() {
+	c := 0
 	for r := range resp {
-		_, err  := r.fut.Get()
+		if c > 10 {
+			os.Exit(1)
+		}
+
+		_, err := r.fut.Get()
 		if err != nil {
 			log.Printf("[ERR] %s", err)
+			c++
 			continue
 		}
-		counter++
+		atomic.AddInt64(&counterGet, 1)
 	}
 }
 
 func timer() {
 	go func() {
 		ti := time.NewTicker(time.Second)
-		var c int64
+		var send, get int64
 
 		for range ti.C {
-			val := atomic.LoadInt64(&counter)
+			valGet := atomic.LoadInt64(&counterGet)
+			valSend := atomic.LoadInt64(&counterSend)
 
-			log.Printf("proccess %d records by %s\n", val-c, time.Second)
+			log.Printf("proccess send %d, get %d records by %s\n", valSend-send, valGet-get, time.Second)
 
-			c = val
+			get = valGet
+			send = valSend
 		}
 	}()
 }
