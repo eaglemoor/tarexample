@@ -58,3 +58,20 @@ go run main.go
 2018/05/02 17:34:02 tarantool: connection localhost:3301 got unexpected resultId (759367) in response
 2018/05/02 17:34:02 tarantool: connection localhost:3301 got unexpected resultId (759368) in response
 ```
+
+```
+tarantool 1.10.0-137-gf12f5ccad
+Intel(R) Xeon(R) CPU E3-1245 v6 @ 3.70GHz
+256GB Intel Pro 5400s SSD
+
+$ make run
+go run main.go
+2018/05/04 13:22:19 proccess send 473141, get 470930 records by 1s
+2018/05/04 13:22:20 proccess send 469064, get 469438 records by 1s
+2018/05/04 13:22:21 proccess send 456111, get 456441 records by 1s
+2018/05/04 13:22:22 proccess send 472051, get 469906 records by 1s
+2018/05/04 13:22:23 proccess send 475745, get 476567 records by 1s
+2018/05/04 13:22:24 proccess send 470603, get 471612 records by 1s
+2018/05/04 13:22:25 proccess send 479104, get 478790 records by 1s
+2018/05/04 13:22:26 [ERR] Failed to allocate 51 bytes in slab allocator for memtx_tuple (0x2)
+```
