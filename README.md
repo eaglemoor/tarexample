@@ -10,7 +10,7 @@
 # Make
 
 ```bash
-make tarantool
+make build-tarantool
 ```
 
 Build new Docker image from tarantool source v 1.10 branch [gh-3320-config-msg-max](https://github.com/tarantool/tarantool/tree/gh-3320-config-msg-max)
