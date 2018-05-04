@@ -22,10 +22,10 @@ var resp chan respTupl
 func conn(address string) (*tarantool.Connection, error) {
 	opts := tarantool.Opts{
 		User:          "guest",
-		Timeout:       500 * time.Millisecond,
+		Timeout:       5000 * time.Millisecond,
 		Reconnect:     1 * time.Second,
 		MaxReconnects: 3,
-		RateLimit:     300,
+		RateLimit:     5000,
 		RLimitAction:  tarantool.RLimitWait,
 	}
 	conn, err := tarantool.Connect(address, opts)
@@ -50,11 +50,12 @@ func main() {
 	go readAsync()
 
 	rand.Seed(time.Now().Unix())
+	rng := rand.New(rand.NewSource(rand.Int63()))
 
 	var i int
 	for {
 		i++
-		pushAsync(conn, i, []int{rand.Int(), i, i, i, i, i})
+		pushAsync(conn, i, []int{rng.Int(), i, i, i, i, i})
 	}
 }
 
